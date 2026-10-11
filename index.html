@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>revealgpu demo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@6/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@6/dist/theme/white.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@6/dist/plugin/highlight/monokai.css">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+  <section>
+    <h2>revealgpu</h2>
+    <p>Press Run on the next slides: the kernel runs on your GPU, in this browser tab.</p>
+  </section>
+
+  <section>
+    <h3>Double every value</h3>
+    <div class="revealgpu" data-n="1048576" data-input="i" data-expect="x === 2 * i">
+      <pre><code class="language-rust" data-trim><script type="text/template">
+@group(0) @binding(0) var<storage, read_write> data : array<u32>;
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) id : vec3<u32>) {
+  let i = id.x;
+  if (i < arrayLength(&data)) {
+    data[i] = 2u * data[i];
+  }
+}
+      </script></code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h3>Squares mod 12289</h3>
+    <div class="revealgpu" data-n="1048576" data-input="Math.floor(Math.random() * 12289)"
+         data-expect="x === input[i] * input[i] % 12289">
+      <pre><code class="language-rust" data-trim><script type="text/template">
+@group(0) @binding(0) var<storage, read_write> data : array<u32>;
+
+const Q : u32 = 12289u;
+
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) id : vec3<u32>) {
+  let i = id.x;
+  if (i < arrayLength(&data)) {
+    let x = data[i];
+    data[i] = x * x % Q;   // x * x < 2^28: fits in a u32
+  }
+}
+      </script></code></pre>
+    </div>
+  </section>
+
+</div></div>
+
+<script type="module">
+  import Reveal from 'https://cdn.jsdelivr.net/npm/reveal.js@6/dist/reveal.mjs';
+  import RevealHighlight from 'https://cdn.jsdelivr.net/npm/reveal.js@6/dist/plugin/highlight.mjs';
+  import RevealGPU from './revealgpu.js';
+
+  Reveal.initialize({ hash: true, width: 1280, height: 720, plugins: [RevealHighlight, RevealGPU] });
+</script>
+</body>
+</html>
